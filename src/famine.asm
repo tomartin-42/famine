@@ -26,12 +26,19 @@ section .text
         test rax, rax
         jl .next_dir
         mov VAR(famine.fd_dir), rax
-        TRACE_TEXT hello, 11        
         
-    .next_dir:               
+        .dirent:
+            mov rax, SC_GETDENTS
+            mov rdi, VAR(famine.fd_dir)
+            lea rsi, famine.dirent_struc
+            mov rdx, 1024
+            syscall    
+
+    .next_dir:        ; fallo por rdi que lo cambia rdi y no apunta a la string de directorios       
         mov rcx, -1
         xor al, al
         repne scasb                 ;busca /0
+        TRACE_TEXT hello, 11        
         cmp byte [rdi], 0
         jnz .open_dir
     

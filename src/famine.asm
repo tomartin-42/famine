@@ -23,12 +23,17 @@ section .text
         mov rax, SC_OPEN
         mov rsi, O_RDONLY | O_DIRECTORY
         syscall
-        push rax                    ;save folder fd
+        test rax, rax
+        jl .next_dir
+        mov VAR(famine.fd_dir), rax
+        TRACE_TEXT hello, 11        
+        
+    .next_dir:               
         mov rcx, -1
         xor al, al
         repne scasb                 ;busca /0
-        TRACE_TEXT hello, 11
-        jmp .open_dir
+        cmp byte [rdi], 0
+        jnz .open_dir
     
     .exit:
         mov rax, SC_EXIT

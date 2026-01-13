@@ -6,8 +6,7 @@
 
 
 struc famine
-    .fd_dir_1 resq     1
-    .fd_dir_2 resq     1
+    .fd_dir resq     1
 endstruc
 
 
@@ -28,3 +27,21 @@ endstruc
     pop rdi
     pop rax
 %endmacro
+
+%define VAR(n) [(rbp - famine_size) + n]
+; Esto es para poder acceder a los valores de la stack donde se va almacenar la struc faime
+; |             |
+; |             |
+; --------------- <- rsp
+; --------------- 
+; |             | 
+; | Famine      | 
+; | Struct      |   
+; | Data        |   
+; |             |
+; | .fd_dir     | <--- VAR(Data) ej: mov rax, VAR(famine.fd_dir)
+; |             |
+; |             |
+; |             |
+; |             |
+; --------------- <- ebp

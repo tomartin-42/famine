@@ -1,18 +1,19 @@
-%define SC_OPEN        2
-%define SC_CLOSE       3
-%define SC_EXIT        60
-%define SC_GETDENTS    78
+%define SC_OPEN         2
+%define SC_CLOSE        3
+%define SC_EXIT         60
+%define SC_GETDENTS     78
 
-%define	O_RDONLY       0x00000000
-%define O_DIRECTORY    0x00010000
+%define	O_RDONLY        0x00000000
+%define O_DIRECTORY     0x00010000
 
+%define REGULAR_FILE    8
 
 struc	dirent
     .d_inode	resq    1	; inode number
     .d_offset	resq	1	; offset to next structure
     .d_len  	resw	1	; Size of this dirent
     .d_name		resb	1	; Filename
-endstruc
+endstruc ; OJO el typo de fichero está al final, en el último byte del registro. 8 para ficheros regulares
 
 
 struc famine

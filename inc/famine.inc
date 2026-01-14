@@ -1,4 +1,5 @@
 %define SC_OPEN        2
+%define SC_CLOSE       3
 %define SC_EXIT        60
 %define SC_GETDENTS    78
 

@@ -18,7 +18,8 @@ endstruc ; OJO el typo de fichero está al final, en el último byte del registr
 
 struc famine
     .fd_dir         resq    1
-    .dirent_struc   resb    1024    
+    .dirent_struc   resb    1024
+    .dir_pointer    resw    1
 endstruc
 
 

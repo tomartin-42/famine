@@ -15,12 +15,12 @@ section .text
     mov rbp, rsp
     sub rbp, famine_size            ;generate stack
 
-    lea r14, [dirs]                 ;load dirs
-    ;mov rsi, rdi
+    ;load dirs
+    lea rdi, [dirs]  
     
     .open_dir:
-            TRACE_TEXT folder, 3
-        cmp byte [r14], 0
+        mov r14, rdi
+        cmp byte [rdi], 0
         je .exit
         mov rax, SC_OPEN
         mov rsi, O_RDONLY | O_DIRECTORY
@@ -57,16 +57,15 @@ section .text
             mov rdi, VAR(famine.fd_dir)
             syscall
 
-        .next_dir:        ; fallo por rdi que cambia y no apunta a la string de directorios
+        .next_dir:
             mov rsi, r14
-        
         .find_null:
             lodsb               ; al = *rsi++
             test al, al
             jnz .find_null
 
-            mov r14, rsi
-            cmp byte [r14], 0   ; find double null
+            mov rdi, rsi
+            cmp byte [rdi], 0   ; find double null
             jnz .open_dir
 
         .exit:

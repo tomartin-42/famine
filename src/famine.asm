@@ -5,7 +5,6 @@ default rel
 section .text
     ; Trazas
     hello db            "[+] Hello",10,0  ;11
-    folder db           "F",10,0 ;3
 
     global _start
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
@@ -39,18 +38,21 @@ section .text
             jle .close_dir
             xor r12, r12            
 
+        ; rdi = dirent_struct[0]
+        ; r12 = offset to dirent_struc node
+        ; rax = total bytes read in getdents
         .validate_files_types:
             lea rdi, VAR(famine.dirent_struc)
             add rdi, r12
             movzx edx, word [rdi + dirent.d_len]
             add r12, rdx
-            cmp [rdi + rdx - 1], REGULAR_FILE
+            cmp byte [rdi + rdx - 1], REGULAR_FILE
             jne .next_file
             call process
 
         .next_file:
             cmp r12, rax
-            jne .validate_files_types
+            jb .validate_files_types
             
         .close_dir:
             mov rax, SC_CLOSE

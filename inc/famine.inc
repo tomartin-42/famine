@@ -6,7 +6,7 @@
 %define	O_RDONLY        0x00000000
 %define O_DIRECTORY     0x00010000
 
-%define REGULAR_FILE    8
+%define REGULAR_FILE    0x08
 
 struc	dirent
     .d_inode	resq    1	; inode number
@@ -19,7 +19,6 @@ endstruc ; OJO el typo de fichero está al final, en el último byte del registr
 struc famine
     .fd_dir         resq    1
     .dirent_struc   resb    1024
-    .dir_pointer    resw    1
 endstruc
 
 

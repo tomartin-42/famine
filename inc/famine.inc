@@ -2,6 +2,7 @@
 %define SC_CLOSE        3
 %define SC_EXIT         60
 %define SC_GETDENTS     78
+%define SC_OPENAT       257      
 
 %define	O_RDONLY        0x00000000
 %define O_DIRECTORY     0x00010000
@@ -17,9 +18,10 @@ endstruc ; OJO el typo de fichero está al final, en el último byte del registr
 
 
 struc famine
-    .fd_dir         resq    1
-    .dirent_struc   resb    1024
-    .file_full_path resb    1024
+    .fd_dir             resq    1
+    .fd_file            resq    1
+    .dirent_struc       resb    1024
+    .dir_name_pointer   resq    1
 endstruc
 
 

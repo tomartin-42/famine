@@ -18,7 +18,9 @@ section .text
     lea rdi, [dirs]  
     
     .open_dir:
+        ; rdi = dir name pointer
         mov r14, rdi
+        mov VAR(famine.dir_name_pointer), rdi
         cmp byte [rdi], 0
         je .exit
         mov rax, SC_OPEN
@@ -49,12 +51,28 @@ section .text
             cmp byte [rdi + rdx - 1], REGULAR_FILE
             jne .next_file
             add rdi, dirent.d_name
-            call process
+
+            .openat:
+                push rax
+                lea rsi, [rdi]
+                mov rdi, VAR(famine.fd_dir)
+                mov rdx, O_RDONLY
+                mov rax, SC_OPENAT
+                xor r10, r10
+                syscall
+                test rax, rax
+                jle .end_openat
+                mov VAR(famine.fd_file), rax
+                jmp .next_file
+
+            .end_openat:
+                pop rax
+                jmp .next_file
 
         .next_file:
             cmp r12, rax
             jb .validate_files_types
-            
+
         .close_dir:
             mov rax, SC_CLOSE
             mov rdi, VAR(famine.fd_dir)
@@ -62,6 +80,7 @@ section .text
 
         .next_dir:
             mov rsi, r14
+        
         .find_null:
             lodsb               ; al = *rsi++
             test al, al
@@ -74,31 +93,5 @@ section .text
         .exit:
             mov rax, SC_EXIT
             syscall
-    
-    ; r14 = file_dir
-    ; rdi = file_name
-    process:
-        mov r15, rdi
-        mov rsi, r14
-        lea rdi, VAR(famine.file_full_path)
-        cld
-
-        ;generate file_full_path
-        .copy_dir_path:
-            movsb
-            cmp byte [rsi], 0
-            jnz .copy_dir_path
-            mov [rdi], 0x2F         ; char "/"
-            inc rdi
-            mov rsi, r15
-
-        .copy_file_path:
-            movsb
-            cmp byte [rsi], 0
-            jnz .copy_file_path
-
-        .test:
-            lea r15, VAR(famine.file_full_path)
-        ret
     
     

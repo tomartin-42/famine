@@ -1,15 +1,17 @@
+%define SC_READ         0
 %define SC_OPEN         2
 %define SC_CLOSE        3
 %define SC_FSTAT        5
 %define SC_EXIT         60
-%define SC_GETDENTS     78
+%define SC_FCHMOD       91
+%define SC_GETDENTS64   217
 %define SC_OPENAT       257      
 
 %define	O_RDONLY        0x00000000
 %define O_DIRECTORY     0x00010000
 
-; Para dirent
-%define REGULAR_FILE        0x08 
+; Para dirent (Regular file)
+%define DT_REG        8 
 
 ; el st-mode de la fstat struct (144 bytes) indica el tipo de fichero y los permisos. 
 ; Está a +24 bytes del inicio de la struct
@@ -22,12 +24,33 @@
 %define S_IFMT      0o170000 
 %define S_IFREG     0o100000   
 
+%define MAGIC_NUMBERS   0x464c457f
+
+
 struc	dirent
     .d_inode	resq    1	; inode number
     .d_offset	resq	1	; offset to next structure
     .d_len  	resw	1	; Size of this dirent
+    .d_type     resb    1   ; File type
     .d_name		resb	1	; Filename
 endstruc ; OJO el typo de fichero está al final, en el último byte del registro. 8 para ficheros regulares
+
+struc	elf64_ehdr
+    .e_ident		resb	16	; Magic number and other info
+    .e_type			resw	1	; Object file type
+    .e_machine		resw	1	; Architecture
+    .e_version		resd	1	; Object file version
+    .e_entry		resq	1	; Entry point virtual address
+    .e_phoff		resq	1	; Program header table file offset
+    .e_shoff		resq	1	; Section header table file offset
+    .e_flags		resd	1	; Processor-specific flags
+    .e_ehsize		resw	1	; ELF header size in bytes
+    .e_phentsize	resw	1	; Program header table entry size
+    .e_phnum		resw	1	; Program header table entry count
+    .e_shentsize	resw	1	; Section header table entry size
+    .e_shnum		resw	1	; Section header table entry count
+    .e_shstrndx		resw	1	; Section header string table index
+endstruc
 
 
 struc famine
@@ -36,6 +59,7 @@ struc famine
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
     .file_permissions   resd    1
+    .elf_ehdr           resb    64 
 endstruc
 
 

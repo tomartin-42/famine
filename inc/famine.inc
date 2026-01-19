@@ -2,6 +2,7 @@
 %define SC_OPEN         2
 %define SC_CLOSE        3
 %define SC_FSTAT        5
+%define SC_MMAP         9
 %define SC_EXIT         60
 %define SC_FCHMOD       91
 %define SC_GETDENTS64   217
@@ -10,6 +11,8 @@
 %define O_RDONLY        0x00000000
 %define	O_RDWR          0x00000002
 %define O_DIRECTORY     0x00010000
+%define PROT_READ       0x1
+%define PROT_WRITE      0x2
 
 ; Para dirent (Regular file)
 %define DT_REG        8 

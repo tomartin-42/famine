@@ -97,17 +97,17 @@ section .text
                 syscall
                 ; Magic numbers
                 cmp dword [rsp], MAGIC_NUMBERS
-                jne .exit_maigc_numbers
+                jne .exit_magic_numbers
                 ; 64 bits
                 cmp byte [rsp + 4], 2     ;EI_CLASS
-                jne .exit_maigc_numbers
+                jne .exit_magic_numbers
                 ; Little endian
                 cmp byte [rsp + 5], 1     ;EI_DATA (little endian)
-                jne .exit_maigc_numbers
+                jne .exit_magic_numbers
                 add rsp, 64
                 jmp .mmap
             
-                .exit_maigc_numbers:
+                .exit_magic_numbers:
                     add rsp, 64
                     jmp .close_file
 

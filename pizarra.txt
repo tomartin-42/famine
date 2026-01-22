@@ -30,3 +30,19 @@ mmap(MAP_SHARED)
 -> copiamos Ehdr Phdr cambiados a los que extraigamos
 de este nuevo mmap.
 -> writes + lseek de Ehdr, Phdr.
+
+TODO:
+
+Remapear el nuevo PT_NOTE
+  - cambiar a PT_LOAD
+  - cambiar tamaño
+  - cambiar p_vaddr
+  - [...]
+
+Copiar virus al final
+
+Cambiar entrys
+
+
+
+Fumar un porrito

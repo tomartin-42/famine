@@ -19,8 +19,7 @@
 ; mmap
 %define PROT_READ       0x1
 %define PROT_WRITE      0x2
-%define MAP_SHARED      0x02
-
+%define MAP_SHARED      0x01
 
 ; msync
 %define MS_SYNC 0x0004

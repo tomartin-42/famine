@@ -83,10 +83,13 @@ struc Famine
     .dirent_struc       resb    1024
     .dir_name_pointer   resq    1
     .file_original_len  resd    1
+    .file_final_len     resd    1
     .mmap_ptr           resq    1
     .original_entry     resq    1
     .virus_entry        resq    1
     .virus_size         resq    1
+    .note_phdr_ptr      resq    1
+    .max_vaddr_end      resq    1
 endstruc
 
 
@@ -106,6 +109,12 @@ endstruc
     pop rsi
     pop rdi
     pop rax
+%endmacro
+
+
+%macro ALIGN 1
+    add %1, 0xfff
+    and %1, 0xfffffffffffff000
 %endmacro
 
 %define VAR(n) [(rbp - Famine_size) + n]

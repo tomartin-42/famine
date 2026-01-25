@@ -4,13 +4,11 @@ RUN apt update && \
     apt install -y \
         make \
         bash \
+        nasm \
+        gdb \
         gcc \
         g++ \
         build-essential \
-        libyaml-cpp-dev \
-        libreadline8 \
-        libreadline-dev \
-        nlohmann-json3-dev \
         btop \
         vim \
         tmux && \

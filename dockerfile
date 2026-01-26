@@ -6,6 +6,7 @@ RUN apt update && \
         bash \
         nasm \
         gdb \
+        cgdb \
         gcc \
         g++ \
         build-essential \

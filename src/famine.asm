@@ -396,7 +396,7 @@ section .text
             jmp rax
 
     dirs db         "/tmp/test",0,"/tmp/test2",0,0
-    Traza db         "Famine version 1.0 (c)oded by tomartin- & carce-bo"
+    Traza db         "Famine version 1.0 (c)oded by tomartin & carce-bo"
     hello db            "[+] Hello",10,0  ;11
     virus_entry dq  0
     original_entry dq 0

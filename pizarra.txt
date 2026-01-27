@@ -33,18 +33,10 @@ de este nuevo mmap.
 
 TODO:
 
-Remapear el nuevo PT_NOTE
-  - cambiar a PT_LOAD
-  - cambiar tamaño
-  - cambiar p_vaddr
-  - [...]
+- Hacer que el calculo del loader offset se haga solo una vez, se hace una vez por fichero de momento
+- Añadir la logica de marcar en el Ehdr que está infectado y el control.
+- Pruebas ?
 
-Copiar virus al final
+Trucos:
+catch syscall <numerete syscall>
 
-Cambiar entrys
-
-Fumar un porrito
-
-
-Cómo podemos saber si estamos siendo ejecutados desde un binario infectado
-o somos el primer programa en lanzarse ?

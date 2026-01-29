@@ -6,10 +6,10 @@
 %define SC_UNMAP        11
 %define SC_MSYNC        26
 %define SC_EXIT         60
+%define SC_FTRUNCATE    77
 %define SC_FCHMOD       91
 %define SC_GETDENTS64   217
 %define SC_OPENAT       257
-%define SC_FTRUNCATE    77
 
 ; open
 %define O_RDONLY        0x00000000
@@ -20,6 +20,8 @@
 %define PROT_READ       0x1
 %define PROT_WRITE      0x2
 %define MAP_SHARED      0x01
+
+%define P_FLAGS         0x05
 
 ; msync
 %define MS_SYNC 0x0004
@@ -136,6 +138,7 @@ endstruc
 ; |             |
 ; |             |
 ; --------------- <- ebp
+
 %macro PUSH_ALL 0
     push rdx
     push rsi

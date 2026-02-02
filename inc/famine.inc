@@ -88,7 +88,6 @@ struc Famine
     .file_final_len     resd    1
     .mmap_ptr           resq    1
     .original_entry     resq    1
-    .virus_entry        resq    1
     .virus_offset       resq    1
     .virus_size         resd    1
     .note_phdr_ptr      resq    1

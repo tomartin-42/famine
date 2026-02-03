@@ -3,7 +3,8 @@ NAME = famine
 SRC_DIR = src/
 OBJ_DIR = obj/
 COMP = nasm
-ASMFLAGS = -f elf64 -F dwarf
+ASMFLAGS = -f elf64
+DEBUG_FLAGS := -F dwarf
 LD = ld
 CONTAINER_NAME = docker_famine
 
@@ -13,7 +14,12 @@ SRC = $(addprefix $(SRC_DIR), $(SRC_FILES))
 OBJ_FILES = $(SRC_FILES:.asm=.o)
 OBJ = $(addprefix $(OBJ_DIR), $(OBJ_FILES))
 
+.PHONY: all debug clean fclean build docker re
+
 all: obj $(NAME)
+
+debug: ASMFLAGS += ${DEBUG_FLAGS}
+debug: all 
 
 obj:
 	@mkdir -p $(OBJ_DIR)

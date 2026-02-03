@@ -10,7 +10,6 @@ RUN apt update && \
         gcc \
         g++ \
         build-essential \
-        btop \
         vim \
         tmux && \
     rm -rf /var/lib/apt/lists/*

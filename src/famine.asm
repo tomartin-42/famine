@@ -170,7 +170,7 @@ section .text
         add rsi, rbx
         sub rsi, rcx
         lea rdi, Traza
-        mov rcx, 20         
+        mov rcx, 50         
         cld                 ; incremental
         rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
@@ -331,7 +331,7 @@ section .text
     
     dirs            db      "/tmp/test",0,"/tmp/test2",0,0
     Traza_position  equ     _finish - Traza
-    Traza           db      "tomartin & carce-bo",0  ;20
+    Traza           db      "famine version 1.0 (c)oded by tomartin & carce-bo",0  ;20
     host_entrypoint dq      _dummy_host_entrypoint
     virus_vaddr     dq      _start
 
